@@ -1,0 +1,43 @@
+---
+title: "Archive"
+author: "Jake Epstein"
+date: "11/19/2019"
+output: html_document
+---
+
+
+```{r}
+appID = "JacobEps-find-PRD-e38876c40-df7498ec"
+baseurl = "https://svcs.ebay.com/services/search/FindingService/v1?"
+oppname = "findCompletedItems"
+
+
+findCompletedItems = function(keywords, appID = "JacobEps-find-PRD-e38876c40-df7498ec", baseurl = "https://svcs.ebay.com/services/search/FindingService/v1?", oppname = "findCompletedItems", format = "JSON", npages = 10) {
+  map_df(1:npages, function(i){
+    bind_rows(fromJSON(paste0(baseurl,
+               "OPERATION-NAME=", oppname,
+               "&SERVICE-VERSION=1.0.0&SECURITY-APPNAME=", appID,
+               "&RESPONSE-DATA-FORMAT=", format,
+               "&REST-PAYLOAD&keywords=", keywords,
+               "&entriesPerPage=", 100,
+               "&pageNumber=", i)))
+  })
+}
+
+
+ebay_raw = findCompletedItems(URLencode("luxury watch"), npages = 20)
+
+ebay = ebay_raw %>% bind_rows() %>% .$searchResult %>% bind_rows() %>% .$item %>% bind_rows()
+
+
+price_vect = map(1:nrow(ebay), function(i) ebay$sellingStatus[[i]] %>% unlist() %>% .[[2]] %>% as.numeric()) %>% unlist()
+ebay = data.frame("item" = unlist(ebay$title),  "ebay_price" = price_vect) %>%
+  unique()
+
+ebay = ebay %>%
+  filter(ebay_price > 500)
+
+write.csv(ebay, "ebay.csv")
+
+predict(model, data.frame(size = 46, material = "Stainlesssteel", condition = "New", brand = "U-Boat", gender = "male", year = 2010)) %>% exp()
+```

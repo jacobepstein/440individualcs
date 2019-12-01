@@ -1,0 +1,25 @@
+---
+title: 'Sta 440 Individual Case Study: Interim Report I'
+author: "Jake Epstein"
+date: "11/9/2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+## Are Luxury Watches an Effective Investment?
+
+Inspration for this case study comes from the following article, which asks the question of whether luxury watches represent an investment: https://www.nytimes.com/2019/03/20/style/collectible-watches.html. I hope to explore this question further through a data-driven lens. First, I aim to create a database of historical prices for luxury watches. Then, I will utilize that data to answer some of the following questions:
+
+* Do luxury watches tend to appreciate over time?
+* What sort of features are associated with appreciation?
+* What is the return profile of the luxury watch asset class?
+* How closely correlated are luxury watch returns with those of equity markets?
+
+## Data Source
+
+I plan to generate my dataset using eBay's API. I am choosing to use eBay transaction price instead of retail price because I believe this more accurately asses the market value of these assets.
+
+## Plan for Analysis
+
+After generating the data, I will first explore and visualize the data. I'll use exploratory data analysis to  visualize general trends in transaction prices and volumes and also explore general relationships between price and various features. Next, I will use a representative basket of watches in order to generate a luxury watch index, and explore the risk and return profile of this theoretical index. In particular, I will focus on how the average return of this compares to inflation, a bond portfolio, an art portfolio, and a stock portoflio. Furthermore, I'll look at the correlation between this index and the broader market, because assets uncorrelated to the market tend to be highly sought by investors.
+
