@@ -4,7 +4,7 @@ username:
 account: jake-epstein
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
-appId: 1545164
-bundleId: 2630370
+appId: 1572392
+bundleId: 2647433
 url: https://jake-epstein.shinyapps.io/shiny/
-when: 1575224143.14649
+when: 1575662530.33944

@@ -1,7 +1,7 @@
 ---
-title: "The Market For Luxury Watches: Interim Report I"
+title: "The Market For Luxury Watches: Final Report"
 author: "Jake Epstein"
-date: "11/15/2019"
+date: "12/10/2019"
 output:
   pdf_document: default
   html_document: default
@@ -21,9 +21,9 @@ library(gridExtra)
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message = FALSE, eval = FALSE)
 ```
 
-## Introduction
+## Executive Summary
 
-This case study explores the factors associated with luxury watch pricing and evaluates whether luxury watch purchases could be considered an investment. Initially, I wanted to approach this question by treating luxury watches like a financial asset. I aimed to create a luxury watch index, and use its historical returns, correlation to the market and other metrics to evaluate watches as an investment. For several reasons, this appraoch was not viable. For one, luxury watches are far from homogenous, and there are huge variations in price from one watch to the next, so a single index would not be particularly informative. More importantly, financial indices require rich historical transaction data to calculate, something surprisingly elusive in this market. Using both eBay and Amazon APIs, I was unable to find more than a handful of relevant transactions. I believe this is because buyers of luxury watches usually purchase to keep for decades, not resell, and platforms such as eBay have connotations that may hurt the resale value of a watch. Instead, the most common platforms for exchange are likely jewelry stores or high-end exchanges. Accordingly, I shifted my approach and instead used data from one of these high-end luxury watch exchanges, ChroNEXT to determine which features are relevant in determine watch price. I then used this model to evaluate to what extent luxury watches appreciate or depreciate over time. I also created an RShiny app to share these data and results with the public.
+This case study explores the factors associated with luxury watch pricing and evaluates whether luxury watch purchases could be considered an investment. Much of the inspiration comes from a New York Times article (https://www.nytimes.com/2019/03/20/style/collectible-watches.html) which declares luxury watches to be a "strong investment vehicle." I scraped data from a luxury watch exchange and developed a mixed effects model to predict watch price. I find that women's watches depreciate over time, and men's watches appreciate at a rate less than inflation. For this, and a variety of other reasons, the New York Times is wrong: watches do not represent a viable investment vehicle.
 
 
 ```{r}
@@ -234,7 +234,9 @@ ggsave("output/eda.png", grid.arrange(arrangeGrob(log_price, material, nrow = 2)
 ```
 ![](output/eda.png)
 
-ChroNEXT is the leading luxury watch exchange, where buyers and sellers can transact on a large number of luxury watches. I utilized the httr package and the selectorgadget chrome extension in order to scrape data on around 2000 luxury watches, including brand, model, price, size, color, gender and year. The exploratory data analysis indicates that prices are extremely right skewed: many watches are worth 2 to 5 thousand dollars, but some are worth well over one hundred thousand dollars. I will use a log-transformed price in the final model in order to account for this skewness. Additionally, there are many brands and materials, well over 25 of each. Some brands and materials, such as Rolexes and stainless steel are common in the data, but others only appear a few times. Accordingly, I will utilize partial pooling in a mixed effects model in order to share some, but not all, data across brand and material groups. 
+Initially, I wanted to approach this question by treating luxury watches like a financial asset. I aimed to create a luxury watch index, and use its historical returns, correlation to the market and other metrics to evaluate watches as an investment. For several reasons, this approach was not viable. For one, luxury watches are far from homogenous, and there are huge variations in price from one watch to the next, so a single index would not be particularly informative. More importantly, financial indices require rich historical transaction data to calculate, something surprisingly elusive in this market. Using both eBay and Amazon APIs, I was unable to find more than a handful of relevant transactions. I believe this is because buyers of luxury watches usually purchase to keep for decades, rather than resell, and platforms such as eBay have connotations that may hurt the resale value of a watch. Instead, the most common platforms for exchange are likely jewelry stores or high-end exchanges. Accordingly, I shifted my approach and instead used data from one of these high-end watch exchanges, ChroNEXT, where buyers and sellers can transact on a large number of luxury watches.
+
+I utilized the httr package and the SelectorGadget chrome extension in order to scrape data on around 2000 luxury watches, including brand, model, price, size, color, gender and year. The exploratory data analysis indicates that prices are extremely right skewed: many watches are worth 2 to 5 thousand dollars, but some are worth well over one hundred thousand dollars. I use a log-transformed price in the final model in order to account for this skewness. Additionally, there are many brands and materials, well over 25 of each. Some brands and materials, such as Rolexes and stainless steel are common in the data, but others only appear a few times. Accordingly, I utilize partial pooling in a mixed effects model in order to share some, but not all, data across brand and material groups. 
 
 
 ## Model Selection
@@ -243,12 +245,14 @@ ChroNEXT is the leading luxury watch exchange, where buyers and sellers can tran
 
 I created several different mixed effects models, some with interaction terms, some with fixed effects for material or brand, and compared them by AIC, shown above. The best model used random effects for both material and brand, and included an interaction term for year and gender. This model is as follows:
 
-$log(Price) \sim (1|Material) + (1|Brand) + Condition + Year + Gender + Year * Gender$
+$log(Price) \sim (1|Material) + (1|Brand) + Condition + Year + Size + Gender + Year * Gender$
 
 
-The random effects in this model are shown below:
+The random effects for selected brands and materials in this model are shown below:
 
 ![](output/re.png)
+
+The most expensive material was gold (including red, white, rose and yellow gold), followed by silver. Some of the most expensive brands include Patek Phillipe, Audemars Piguet and Porsche. If you're in the market for a luxury watch but don't want to spend a lot of money, I would recommend buying from Marcello C, Mido, or Frederique Constant, and looking for a watch made of steel, ceramic or plastic.
 
 ```{r, results = "hide"}
 
@@ -279,13 +283,60 @@ best_model = model_df %>%
 
 #model2 is our best model
 
+watches = watches %>%
+  mutate(condition = as.factor(condition)) %>%
+  mutate(condition = relevel(condition, "Vintage"))
+
 model = model2
 summary(model)
 
+abc = summary(model)
 
 par(mfrow=c(1,2))
 
-ggsave("output/re.png", grid.arrange(plot_model(model, type = "re")[[1]] + theme_minimal(), plot_model(model, type = "re")[[2]] + theme_minimal(), nrow = 1), device = "png", height = 8, width = 12, units = "in")
+brand_effects = data.frame(
+  brand = plot_model(model, type = "re")[[1]]$data$term,
+  effect = plot_model(model, type = "re")[[1]]$data$estimate,
+  lower = plot_model(model, type = "re")[[1]]$data$conf.low, 
+  high = plot_model(model, type = "re")[[1]]$data$conf.high
+)
+
+material_effects = data.frame(
+  material = plot_model(model, type = "re")[[2]]$data$term,
+  effect = plot_model(model, type = "re")[[2]]$data$estimate,
+  lower = plot_model(model, type = "re")[[2]]$data$conf.low, 
+  high = plot_model(model, type = "re")[[2]]$data$conf.high
+)
+
+top_brand_effects = brand_effects %>%
+  arrange(effect) %>%
+  slice(1:5, (nrow(brand_effects)-4):nrow(brand_effects)) %>%
+  mutate(positive = effect > 0)
+
+top_material_effects = material_effects %>%
+  arrange(effect) %>%
+  slice(1:5, (nrow(material_effects)-4):nrow(material_effects))%>%
+  mutate(positive = effect > 0)
+
+tbe_plot = ggplot(top_brand_effects, aes(x = reorder(brand,effect), y = effect, color = positive)) +
+  geom_point(size = 3) +
+  geom_linerange(aes(ymin = lower, ymax = high), size = 1.25) +
+  coord_flip() +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  ylim(-2.5, 2.5) +
+  labs(title = "Selected Brand Effects", x = "Brand", y = "Effect")
+
+tme_plot = ggplot(top_material_effects, aes(x = reorder(material,effect), y = effect, color = positive)) +
+  geom_point(size = 3) +
+  geom_linerange(aes(ymin = lower, ymax = high), size = 1.25) +
+  coord_flip() +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  ylim(-2.5, 2.5) +
+  labs(title = "Selected Material Effects", x = "Material", y = "Effect")
+
+ggsave("output/re.png", grid.arrange(tbe_plot, tme_plot, nrow = 1), device = "png", height = 4, width = 10, units = "in")
 
 
 plot_model(model, type = "re")[[1]] +
@@ -325,7 +376,7 @@ plot_model(model, type = "pred", terms = c("year", "size", "gender")) +
 
 ![](output/interp.png)
 
-All variables were highly significant in predicting price. Most of these effects are intuitive: larger watches and watches in better condition are more expensive. The most expensive material was gold (including white, yellow, rose and red gold), followed by platinum and silver. Some of the most expensive brands include Patek Phillipe, Audemars Piguet adn Breguet. The year effect was the most intereseting finding. Women's watches tend to depreciate over time; a watch one year older is expected to be worth 1.3% less holding all else constant. Men's watches, on the other hand, do appreciate, at a rate of about 0.6% per year.This rate is not enough to keep pace with inflation. Furthermore, this rate requires the watch's condition to remain in the same state as when it was purchased, but the model predicts a 22% decrease in value when a watch goes from new to very good condition; in other words, you wouldn't be able to wear your watch if you want it to appreciate at all!
+All variables were highly significant in predicting price. Most of these effects are intuitive: larger watches and watches in better condition are more expensive. The year effect was the most intereseting finding. Women's watches tend to depreciate over time; a watch one year older is expected to be worth 1.3% less holding all else constant. Men's watches, on the other hand, do appreciate, at a rate of about 0.6% per year.This rate is not enough to keep pace with inflation. Furthermore, this rate requires the watch's condition to remain in the same state as when it was purchased, but the model predicts a 22% decrease in value when a watch goes from new to very good condition; in other words, you wouldn't be able to wear your watch if you want it to appreciate at all!
 
 I also considered that this relationship might be different for different brands. In order to test this, I created a variable of whether a watch was made by the most expensive third of brands, the least expensive third of brands, or the middle third, and included its interaction with year into a model. This variable was not significant, indicating that expensive brands don't necessarily appreciate at a different rate than the less expensive brands. Furthermore, there are other limitations to purchasing luxury watches as an investmnet. As I mentioned in the introduction, there are very few transactions on large platfroms such as Amazon and eBay, indicating a rather illiquid market for these watches. If you need to sell your watch, it will likely be back to a jewelry store or to a platform such as ChroNEXT, both of which will take a large fee. Overall, the conclusion of whether luxury watches represent a sound financial investment is clear: they do not.
 
